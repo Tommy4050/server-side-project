@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gamebay — Webshop</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <div class="site-header">
+      <h1>Gamebay</h1>
+
+      <!-- kereső a fejlécben (kosár mellett) -->
+      <input id="headerSearch" class="header-search" placeholder="Keresés..." aria-label="Keresés" />
+
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="cart-btn" id="cartBtn">Kosár (<span id="cartCount">0</span>)</div>
+      </div>
+    </div>
+
+    <!-- JS alapú folyamatos képsáv (marquee) -->
+    <div id="marqueeContainer" class="image-marquee" aria-hidden="false">
+      <div id="marqueeTrack" class="marquee-track"></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="filters">
+      <!-- a fejlécben van a kereső, itt csak a rendezés marad -->
+      <select id="sort">
+        <option value="default">Rendezés</option>
+        <option value="price-asc">Ár növekvő</option>
+        <option value="price-desc">Ár csökkenő</option>
+      </select>
+    </section>
+
+    <section id="productGrid" class="product-grid" aria-live="polite">
+      <!-- Termékkártyák ide töltődnek be JS-sel -->
+    </section>
+
+    <aside id="cartPanel" class="cart-panel hidden" aria-hidden="true">
+      <h2>Kosár</h2>
+      <div id="cartItems"></div>
+      <div class="cart-total">Összesen: <span id="cartTotal">0</span> Ft</div>
+      <button id="checkoutBtn">Fizetés (demo)</button>
+      <button id="closeCart">Bezár</button>
+    </aside>
+  </main>
+
+  <!-- kártya template -->
+  <template id="productTpl">
+    <article class="product-card">
+      <img class="product-img" src="" alt="" />
+      <h3 class="product-title"></h3>
+      <p class="product-price"></p>
+      <button class="add-to-cart">Kosárba</button>
+    </article>
+  </template>
+
+  <!-- modal termék részletekhez -->
+  <div id="productModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <button class="close-modal" aria-label="Bezár">&times;</button>
+      <img id="modalImg" src="" alt="" />
+      <h2 id="modalTitle"></h2>
+      <p id="modalPrice" class="modal-price"></p>
+      <p id="modalDesc" class="modal-desc"></p>
+      <p id="modalMeta" class="modal-meta"></p>
+      <button id="modalAdd" class="add-to-cart">Kosárba</button>
+    </div>
+  </div>
+  
+<!--Ni༼ つ ◕_◕ ༽つgga-->  
+
+
+  <script src="app.js"></script>
+</body>
+</html>
+
+
+
