@@ -1,1 +1,3 @@
 # server-side-project
+
+## Ideas
