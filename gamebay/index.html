@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Store</title>
+<link rel="stylesheet" href="css/styles.css">
+
+</head>
+<body>
+
+<header>
+  <h1>Game Bay</h1>
+  <input type="text" id="headerSearch" placeholder="Keresés...">
+  <select id="sort">
+    <option value="">Rendezés</option>
+    <option value="price-asc">Ár növekvő</option>
+    <option value="price-desc">Ár csökkenő</option>
+  </select>
+  <button id="cartBtn">Kosár (<span id="cartCount">0</span>)</button>
+</header>
+
+<main>
+  <section id="marqueeContainer">
+    <div id="marqueeTrack"></div>
+  </section>
+
+  <section id="productGrid"></section>
+</main>
+
+<!-- termék template -->
+<template id="productTpl">
+  <div class="product-card">
+    <img class="product-img" src="" alt="">
+    <h3 class="product-title"></h3>
+    <p class="product-price"></p>
+    <button class="add-to-cart">Kosárba</button>
+  </div>
+</template>
+
+<!-- modal -->
+<div id="productModal" class="hidden">
+  <div class="modal-content">
+    <span class="close-modal">&times;</span>
+    <img id="modalImg" src="" alt="">
+    <h2 id="modalTitle"></h2>
+    <p id="modalPrice"></p>
+    <p id="modalDesc"></p>
+    <p id="modalMeta"></p>
+    <button id="modalAdd">Kosárba</button>
+  </div>
+</div>
+
+<!-- kosár panel -->
+<div id="cartPanel" class="hidden">
+  <h2>Kosár</h2>
+  <div id="cartItems"></div>
+  <p>Összesen: <span id="cartTotal">0</span> Ft</p>
+  <button id="closeCart">Bezár</button>
+  <button id="checkoutBtn">Fizetés</button>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

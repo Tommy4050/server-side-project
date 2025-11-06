@@ -1,0 +1,57 @@
+CREATE DATABASE GameStore;
+
+USE GameStore;
+
+CREATE TABLE games (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(100) NOT NULL,
+    price INT NOT NULL,
+    image VARCHAR(255) NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    publisher VARCHAR(100),
+    year INT
+);
+
+INSERT INTO games (title, price, image, description, publisher, year) VALUES
+('Cyberpunk', 11990, 'https://via.placeholder.com/400x200.png?text=Cyberpunk', 'Nyílt világú sci-fi RPG.', 'CD Projekt', 2020),
+('Skyrim', 9990, 'https://via.placeholder.com/400x200.png?text=Skyrim', 'Fantasy RPG hatalmas világban.', 'Bethesda', 2011),
+('World of Warcraft', 7990, 'https://via.placeholder.com/400x200.png?text=World+of+Warcraft', 'Legendás MMORPG epikus kalandokkal.', 'Blizzard', 2004),
+('Diablo', 8490, 'https://via.placeholder.com/400x200.png?text=Diablo', 'Sötét akció-RPG dungeon crawler.', 'Blizzard', 1996),
+('Half-Life', 6990, 'https://via.placeholder.com/400x200.png?text=Half-Life', 'Ikonikus sci-fi FPS izgalmas küldetésekkel.', 'Valve', 1998),
+('Need for Speed', 7490, 'https://via.placeholder.com/400x200.png?text=Need+for+Speed', 'Izgalmas autóverseny arcade stílusban.', 'Electronic Arts', 1994),
+('God of War', 10990, 'https://via.placeholder.com/400x200.png?text=God+of+War', 'Mitológiai hack & slash akciójáték.', 'Sony', 2005),
+('The Witcher 3', 14990, 'https://via.placeholder.com/400x200.png?text=The+Witcher+3', 'Nyílt világú RPG gazdag történettel.', 'CD Projekt', 2015),
+('Assassins Creed Valhalla', 11990, 'https://via.placeholder.com/400x200.png?text=Assassins+Creed+Valhalla', 'Akció-kaland nyílt világban vikingekkel.', 'Ubisoft', 2020),
+('Horizon Zero Dawn', 10990, 'https://via.placeholder.com/400x200.png?text=Horizon+Zero+Dawn', 'Futurisztikus nyílt világú akció-RPG.', 'Guerrilla Games', 2017),
+('Cyberpunk 2077', 11990, 'https://via.placeholder.com/400x200.png?text=Cyberpunk+2077', 'Sci-fi RPG futurisztikus városban.', 'CD Projekt', 2020),
+('The Last of Us Part II', 14990, 'https://via.placeholder.com/400x200.png?text=The+Last+of+Us+II', 'Túlélő akció kaland.', 'Naughty Dog', 2020),
+('Red Dead Redemption 2', 15990, 'https://via.placeholder.com/400x200.png?text=Red+Dead+Redemption+2', 'Nyílt világú western kaland.', 'Rockstar Games', 2018),
+('Call of Duty: Modern Warfare', 12990, 'https://via.placeholder.com/400x200.png?text=COD+MW', 'FPS intenzív háborús kampánnyal.', 'Activision', 2019),
+('Overwatch', 8990, 'https://via.placeholder.com/400x200.png?text=Overwatch', 'Csapat alapú FPS izgalmas hősökkel.', 'Blizzard', 2016),
+('Fortnite', 0, 'https://via.placeholder.com/400x200.png?text=Fortnite', 'Battle Royale multiplayer akció játék.', 'Epic Games', 2017),
+('League of Legends', 0, 'https://via.placeholder.com/400x200.png?text=League+of+Legends', 'MOBA, stratégiai csapatjáték.', 'Riot Games', 2009),
+('Minecraft', 6990, 'https://via.placeholder.com/400x200.png?text=Minecraft', 'Sandbox kreatív és túlélő játék.', 'Mojang', 2011),
+('Valorant', 0, 'https://via.placeholder.com/400x200.png?text=Valorant', 'Taktikai FPS, hős alapú képességekkel.', 'Riot Games', 2020),
+('Resident Evil Village', 11990, 'https://via.placeholder.com/400x200.png?text=Resident+Evil+Village', 'Horror túlélő akció FPS és kaland.', 'Capcom', 2021),
+('Dark Souls III', 12990, 'https://via.placeholder.com/400x200.png?text=Dark+Souls+III', 'Kihívást jelentő akció RPG.', 'FromSoftware', 2016),
+('Elden Ring', 15990, 'https://via.placeholder.com/400x200.png?text=Elden+Ring', 'Nyílt világú akció RPG.', 'FromSoftware', 2022),
+('The Elder Scrolls Online', 9990, 'https://via.placeholder.com/400x200.png?text=ESO', 'MMORPG Tamriel világában.', 'Zenimax', 2014),
+('GTA V', 12990, 'https://via.placeholder.com/400x200.png?text=GTA+V', 'Nyílt világú bűnügyi akció játék.', 'Rockstar Games', 2013),
+('Far Cry 6', 11990, 'https://via.placeholder.com/400x200.png?text=Far+Cry+6', 'Nyílt világú FPS kaland.', 'Ubisoft', 2021),
+('Battlefield 2042', 12990, 'https://via.placeholder.com/400x200.png?text=Battlefield+2042', 'FPS nagy háborús multiplayer.', 'Electronic Arts', 2021),
+('Spider-Man: Miles Morales', 10990, 'https://via.placeholder.com/400x200.png?text=Spider-Man+Miles+Morales', 'Akció kaland szuperhős történettel.', 'Sony', 2020),
+('Star Wars Jedi: Fallen Order', 9990, 'https://via.placeholder.com/400x200.png?text=Jedi+Fallen+Order', 'Akció kaland a Star Wars univerzumban.', 'Electronic Arts', 2019),
+('Monster Hunter: World', 10990, 'https://via.placeholder.com/400x200.png?text=Monster+Hunter+World', 'Akció RPG vad szörnyekkel.', 'Capcom', 2018),
+('Apex Legends', 0, 'https://via.placeholder.com/400x200.png?text=Apex+Legends', 'Battle Royale hős alapú multiplayer.', 'Electronic Arts', 2019),
+('Ghost of Tsushima', 11990, 'https://via.placeholder.com/400x200.png?text=Ghost+of+Tsushima', 'Nyílt világú szamuráj akció kaland.', 'Sony', 2020),
+('Fall Guys', 0, 'https://via.placeholder.com/400x200.png?text=Fall+Guys', 'Party battle royale szórakoztató akadályokkal.', 'Mediatonic', 2020),
+('Cyber Hunter', 7990, 'https://via.placeholder.com/400x200.png?text=Cyber+Hunter', 'Futurisztikus battle royale kaland.', 'NetEase', 2019),
+('Forza Horizon 5', 12990, 'https://via.placeholder.com/400x200.png?text=Forza+Horizon+5', 'Nyílt világú autóverseny.', 'Microsoft', 2021),
+('Kingdom Hearts III', 10990, 'https://via.placeholder.com/400x200.png?text=Kingdom+Hearts+III', 'Akció-RPG Disney és Square Enix karakterekkel.', 'Square Enix', 2019);
+('Death Stranding', 13990, 'https://via.placeholder.com/400x200.png?text=Death+Stranding', 'Futurisztikus akció kaland.', 'Kojima Productions', 2019),
+('Sekiro: Shadows Die Twice', 12990, 'https://via.placeholder.com/400x200.png?text=Sekiro+Shadows+Die+Twice', 'Akció kaland japán szamuráj témával.', 'FromSoftware', 2019),
+('Bloodborne', 13990, 'https://via.placeholder.com/400x200.png?text=Bloodborne', 'Sötét akció RPG horror elemekkel.', 'FromSoftware', 2015),
+('Demons Souls', 14990, 'https://via.placeholder.com/400x200.png?text=Demons+Souls', 'Kihívást jelentő akció RPG.', 'FromSoftware', 2020),
+('Dark Souls II', 11990, 'https://via.placeholder.com/400x200.png?text=Dark+Souls+II', 'Kihívást jelentő akció RPG.', 'FromSoftware', 2014),
+('Dark Souls', 10990, 'https://via.placeholder.com/400x200.png?text=Dark+Souls', 'Kihívást jelentő akció RPG.', 'FromSoftware', 2011),
+('Elden Ring', 15990, 'https://via.placeholder.com/400x200.png?text=Elden+Ring', 'Nyílt világú akció RPG.', 'FromSoftware', 2022),
