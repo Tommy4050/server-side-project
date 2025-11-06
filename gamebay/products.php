@@ -3,9 +3,9 @@ header('Content-Type: application/json');
 header("Access-Control-Allow-Origin: *");
 
 $host = 'localhost';
-$db   = 'GameStore';
+$db   = 'gamebay';
 $user = 'root';
-$pass = 'jelszo';
+$pass = ''; // XAMPP alapértelmezett root jelszó
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";

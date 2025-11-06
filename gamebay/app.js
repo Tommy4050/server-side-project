@@ -27,7 +27,7 @@ let cart = JSON.parse(localStorage.getItem('gamebay_cart') || '{}');
 
 async function loadProducts() {
   try {
-    const res = await fetch('http://localhost/project/api.php', { cache: "no-store" });
+    const res = await fetch('http://localhost/gamebay/products.php', { cache: "no-store" });
     if(!res.ok) throw new Error('Hálózati hiba: ' + res.status);
     products = await res.json();
     renderProducts(products);

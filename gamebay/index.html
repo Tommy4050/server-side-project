@@ -1,14 +1,12 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="hu">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Game Store</title>
-<link rel="stylesheet" href="css/styles.css">
-
+<title>Game Bay</title>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
-
 <header>
   <h1>Game Bay</h1>
   <input type="text" id="headerSearch" placeholder="Keresés...">
@@ -19,16 +17,12 @@
   </select>
   <button id="cartBtn">Kosár (<span id="cartCount">0</span>)</button>
 </header>
-
 <main>
   <section id="marqueeContainer">
     <div id="marqueeTrack"></div>
   </section>
-
   <section id="productGrid"></section>
 </main>
-
-<!-- termék template -->
 <template id="productTpl">
   <div class="product-card">
     <img class="product-img" src="" alt="">
@@ -37,8 +31,6 @@
     <button class="add-to-cart">Kosárba</button>
   </div>
 </template>
-
-<!-- modal -->
 <div id="productModal" class="hidden">
   <div class="modal-content">
     <span class="close-modal">&times;</span>
@@ -50,8 +42,6 @@
     <button id="modalAdd">Kosárba</button>
   </div>
 </div>
-
-<!-- kosár panel -->
 <div id="cartPanel" class="hidden">
   <h2>Kosár</h2>
   <div id="cartItems"></div>
@@ -59,7 +49,6 @@
   <button id="closeCart">Bezár</button>
   <button id="checkoutBtn">Fizetés</button>
 </div>
-
 <script src="app.js"></script>
 </body>
 </html>
