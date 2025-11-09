@@ -25,6 +25,20 @@ if ($userIdParam) {
     exit;
 }
 $author = $st->fetch();
+$viewer = Auth::user();
+$viewerId = $viewer ? (int)$viewer['user_id'] : null;
+
+$relationship = null; // 'self', 'friends', 'pending_sent', 'pending_recv', 'none'
+if ($viewerId && $viewerId === (int)$author['user_id']) {
+  $relationship = 'self';
+} elseif ($viewerId && Friend::areFriends($viewerId, (int)$author['user_id'])) {
+  $relationship = 'friends';
+} elseif ($viewerId && ($p = Friend::pendingBetween($viewerId, (int)$author['user_id']))) {
+  $relationship = ($p['requester_id'] == $viewerId) ? 'pending_sent' : 'pending_recv';
+} else {
+  $relationship = 'none';
+}
+
 if (!$author) {
     http_response_code(404);
     echo "<!doctype html><meta charset='utf-8'><h1>404 – Felhasználó nem található</h1>";
@@ -107,6 +121,55 @@ include __DIR__ . '/partials/sidebar-filters.php';
       </p>
     </article>
   <?php endforeach; ?>
+
+  <?php if ($viewerId && $relationship !== 'self'): ?>
+    <div style="margin:8px 0;">
+      <?php if ($relationship === 'friends'): ?>
+        <form method="post" action="<?= e(base_url('friends_actions.php')) ?>" style="display:inline">
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="unfriend">
+          <input type="hidden" name="other_user_id" value="<?= (int)$author['user_id'] ?>">
+          <input type="hidden" name="redirect" value="<?= e($_SERVER['REQUEST_URI']) ?>">
+          <button type="submit">Barát törlése</button>
+        </form>
+
+      <?php elseif ($relationship === 'pending_sent'): ?>
+        <form method="post" action="<?= e(base_url('friends_actions.php')) ?>" style="display:inline">
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="cancel">
+          <input type="hidden" name="other_user_id" value="<?= (int)$author['user_id'] ?>">
+          <input type="hidden" name="redirect" value="<?= e($_SERVER['REQUEST_URI']) ?>">
+          <button type="submit">Felkérés visszavonása</button>
+        </form>
+
+      <?php elseif ($relationship === 'pending_recv'): ?>
+        <form method="post" action="<?= e(base_url('friends_actions.php')) ?>" style="display:inline">
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="accept">
+          <input type="hidden" name="other_user_id" value="<?= (int)$author['user_id'] ?>">
+          <input type="hidden" name="redirect" value="<?= e($_SERVER['REQUEST_URI']) ?>">
+          <button type="submit">Elfogadás</button>
+        </form>
+        <form method="post" action="<?= e(base_url('friends_actions.php')) ?>" style="display:inline">
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="decline">
+          <input type="hidden" name="other_user_id" value="<?= (int)$author['user_id'] ?>">
+          <input type="hidden" name="redirect" value="<?= e($_SERVER['REQUEST_URI']) ?>">
+          <button type="submit">Elutasítás</button>
+        </form>
+
+      <?php else: /* none */ ?>
+        <form method="post" action="<?= e(base_url('friends_actions.php')) ?>" style="display:inline">
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="send">
+          <input type="hidden" name="other_user_id" value="<?= (int)$author['user_id'] ?>">
+          <input type="hidden" name="redirect" value="<?= e($_SERVER['REQUEST_URI']) ?>">
+          <button type="submit">Barátnak jelölés</button>
+        </form>
+      <?php endif; ?>
+    </div>
+  <?php endif; ?>
+
 
   <nav class="pagination" aria-label="Lapozás">
     <ul class="pagination__list">

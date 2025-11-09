@@ -31,6 +31,7 @@
         <li class="nav__item nav__item--right <?= ($active ?? '') === 'profile' ? ' nav__item--active' : '' ?>">
           <?php if ($u = Auth::user()): ?>
             <a class="nav__link" href="<?= e(base_url('profile.php')) ?>"><?= e($u['username']) ?></a>
+            &nbsp;|&nbsp; <a class="nav__link" href="<?= e(base_url('friends.php')) ?>">Barátaim</a>
             &nbsp;|&nbsp; <a class="nav__link" href="<?= e(base_url('upload.php')) ?>">Feltöltés</a>
             &nbsp;|&nbsp; <a class="nav__link" href="<?= e(base_url('cart.php')) ?>">
               Kosár (<?= (int)Cart::itemCount((int)$u['user_id']) ?>)
