@@ -16,6 +16,13 @@
         return $base . ($path ? "/$path" : '');
     }
 
+    function asset_url(string $path): string {
+        // if it's already an absolute URL, return as-is
+        if (preg_match('~^https?://~i', $path)) return $path;
+        return base_url(ltrim($path, '/'));
+    }
+
+
 
     function redirect(string $to): never {
         header('Location: ' . $to);

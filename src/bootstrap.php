@@ -24,4 +24,6 @@
     require_once __DIR__ . '/Library.php';
     require_once __DIR__ . '/Cart.php';
     require_once __DIR__ . '/Order.php';
+    require_once __DIR__ . '/Post.php';
+
 ?>

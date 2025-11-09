@@ -25,13 +25,14 @@
           <a class="nav__link" href="<?= e(base_url('library.php')) ?>">Könyvtár</a>
         </li>
         <li class="nav__item<?= ($active ?? '') === 'community' ? ' nav__item--active' : '' ?>">
-          <a class="nav__link" href="#">Közösség</a>
+          <a class="nav__link" href="<?= e(base_url('feed.php')) ?>">Közösség</a>
         </li>
+
         <li class="nav__item nav__item--right <?= ($active ?? '') === 'profile' ? ' nav__item--active' : '' ?>">
           <?php if ($u = Auth::user()): ?>
             <a class="nav__link" href="<?= e(base_url('profile.php')) ?>"><?= e($u['username']) ?></a>
-            &nbsp;|&nbsp;
-            <a class="nav__link" href="<?= e(base_url('cart.php')) ?>">
+            &nbsp;|&nbsp; <a class="nav__link" href="<?= e(base_url('upload.php')) ?>">Feltöltés</a>
+            &nbsp;|&nbsp; <a class="nav__link" href="<?= e(base_url('cart.php')) ?>">
               Kosár (<?= (int)Cart::itemCount((int)$u['user_id']) ?>)
             </a>
             &nbsp;|&nbsp; <a class="nav__link" href="<?= e(base_url('orders.php')) ?>">Rendeléseim</a>
