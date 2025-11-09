@@ -56,11 +56,6 @@ function show_or_missing(?string $v): string {
           if ($code === '') {
               echo '<em>Nincs megadva</em>';
           } else {
-              // If you want the full name, load countries and show name (optional):
-              // $COUNTRIES_BY_CONTINENT = require __DIR__ . '/../src/countries.php';
-              // $ALL = [];
-              // foreach ($COUNTRIES_BY_CONTINENT as $grp=>$list) foreach ($list as $c=>$n) $ALL[$c]=$n;
-              // echo e(($ALL[$code] ?? $code) . " ($code)");
               echo e($code);
           }
         ?>

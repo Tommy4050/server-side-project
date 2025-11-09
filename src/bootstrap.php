@@ -21,4 +21,7 @@
     require_once __DIR__ . '/functions.php';
     require_once __DIR__ . '/Auth.php';
     require_once __DIR__ . '/User.php';
+    require_once __DIR__ . '/Library.php';
+    require_once __DIR__ . '/Cart.php';
+    require_once __DIR__ . '/Order.php';
 ?>

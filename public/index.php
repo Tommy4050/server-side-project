@@ -18,6 +18,7 @@ error_reporting(E_ALL);
     <?php if ($u = Auth::user()): ?>
         <p>Bejelentkezve mint <strong><?= e($u['username']) ?></strong></p>
         <p>
+            <a href="<?= e(base_url('library.php')) ?>">Saját könyvtár</a> |
             <a href="<?= e(base_url('profile.php')) ?>">Profil</a> |
             <a href="<?= e(base_url('logout.php')) ?>">Kijelenkezés</a>
         </p>
