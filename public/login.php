@@ -64,5 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </form>
 
   <p>Nincs még fiókod? <a href="<?= e(base_url('register.php')) ?>">Regisztráció</a></p>
+  <p><a href="<?= e(base_url('forgot_password.php')) ?>">Elfelejtetted a jelszavad?</a></p>
+
 </body>
 </html>

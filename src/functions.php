@@ -36,4 +36,13 @@
     function verify_csrf(?string $token): bool {
         return is_string($token) && isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
     }
+
+    function require_login(): array {
+    $u = Auth::user();
+    if (!$u) {
+        redirect(base_url('login.php'));
+    }
+    return $u;
+}
+
 ?>
