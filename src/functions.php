@@ -69,4 +69,12 @@
         }
     }
 
+    function is_banned(array $user): bool {
+        $val = $user['banned_until'] ?? null;
+        if (!$val || $val === '0000-00-00 00:00:00') return false;
+        $dt = DateTime::createFromFormat('Y-m-d H:i:s', $val) ?: new DateTime($val);
+        return $dt > new DateTime();
+    }
+
+
 ?>

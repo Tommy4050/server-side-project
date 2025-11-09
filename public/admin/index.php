@@ -16,6 +16,7 @@ include __DIR__ . '/../partials/header.php';
     <ul>
       <li><a href="<?= e(base_url('admin/posts.php')) ?>">Posztok moderálása</a></li>
       <li><a href="<?= e(base_url('admin/games.php')) ?>">Játékok kezelése</a></li>
+      <li><a href="<?= e(base_url('admin/users.php')) ?>">Felhasználók</a></li>
       <li><a href="<?= e(base_url('friends.php')) ?>">Barátkezelés (felhasználói nézet)</a></li>
     </ul>
   </section>

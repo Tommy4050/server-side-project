@@ -42,7 +42,7 @@
             return (int)db()->lastInsertId();
         }
 
-        public static function login(string $email, string $password): array {
+        /*public static function login(string $email, string $password): array {
             $user = self::findUserByEmail($email);
             if (!$user || $user['status'] !== 'active') {
                 throw new RuntimeException('Hibás hitelesítési adatok');
@@ -59,9 +59,23 @@
                 'email' => $user['email'],
             ];
             return $_SESSION['user'];
+        }*/
+        public static function login(string $email, string $password): void {
+            // Fetch user
+            $st = db()->prepare("SELECT user_id, password_hash FROM users WHERE email = :e LIMIT 1");
+            $st->execute([':e' => $email]);
+            $u = $st->fetch();
+
+            if (!$u || !password_verify($password, $u['password_hash'])) {
+                throw new RuntimeException('Hibás e-mail vagy jelszó.');
+            }
+
+            if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+            session_regenerate_id(true);                // rotate ID once at login
+            $_SESSION['user_id'] = (int)$u['user_id'];  // the one and only session flag
         }
 
-        public static function logout(): void {
+        /*public static function logout(): void {
             $_SESSION = [];
             if (ini_get("session.use_cookies")) {
                 $params = session_get_cookie_params();
@@ -69,11 +83,52 @@
                     $params['secure'], $params['httponly']);
             }
             session_destroy();
+        }*/
+        public static function logout(): void {
+            if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+            $_SESSION = [];
+            if (ini_get("session.use_cookies")) {
+                $p = session_get_cookie_params();
+                setcookie(session_name(), '', time() - 42000, $p['path'], $p['domain'], $p['secure'], $p['httponly']);
+            }
+            session_destroy();
         }
 
-        public static function user(): ? array {
+        /*public static function user(): ? array {
             return $_SESSION['user'] ?? null;
+        }*/
+        /*public static function user(): ?array {
+            if (empty($_SESSION['user_id'])) return null;
+
+            $st = db()->prepare("SELECT * FROM users WHERE user_id = :u LIMIT 1");
+            $st->execute([':u' => (int)$_SESSION['user_id']]);
+            $u = $st->fetch();
+            if (!$u) { self::logout(); return null; }
+
+            // Ban check (robust parsing)
+            $val = $u['banned_until'] ?? null;
+            if ($val && $val !== '0000-00-00 00:00:00') {
+                $until = \DateTime::createFromFormat('Y-m-d H:i:s', $val) ?: new \DateTime($val);
+                if ($until > new \DateTime()) {
+                    self::logout();
+                    return null;
+                }
+            }
+
+            return $u;
+        }*/
+        public static function user(): ?array {
+            if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+            if (empty($_SESSION['user_id'])) return null;
+
+            $st = db()->prepare("SELECT * FROM users WHERE user_id = :u LIMIT 1");
+            $st->execute([':u' => (int)$_SESSION['user_id']]);
+            $u = $st->fetch();
+
+            if (!$u) { self::logout(); return null; }
+            return $u;
         }
+
 
         public static function getUserWithHashById(int $userId): ?array {
             $sql = "SELECT user_id, username, email, password_hash, status
