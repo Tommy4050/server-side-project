@@ -45,11 +45,28 @@
     }
 
     function require_login(): array {
-    $u = Auth::user();
-    if (!$u) {
-        redirect(base_url('login.php'));
+        $u = Auth::user();
+        if (!$u) {
+            redirect(base_url('login.php'));
+        }
+        return $u;
     }
-    return $u;
-}
+
+    function is_admin(): bool {
+        $u = Auth::user();
+        if (!$u) return false;
+        // Load fresh from DB in case session is stale:
+        $st = db()->prepare("SELECT is_admin FROM users WHERE user_id = :u LIMIT 1");
+        $st->execute([':u' => (int)$u['user_id']]);
+        return (bool)$st->fetchColumn();
+    }
+
+    function require_admin(): void {
+        if (!is_admin()) {
+            http_response_code(403);
+            echo "<!doctype html><meta charset='utf-8'><h1>403 – Hozzáférés megtagadva</h1><p>Admin jogosultság szükséges.</p>";
+            exit;
+        }
+    }
 
 ?>

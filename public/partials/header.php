@@ -37,6 +37,10 @@
               Kosár (<?= (int)Cart::itemCount((int)$u['user_id']) ?>)
             </a>
             &nbsp;|&nbsp; <a class="nav__link" href="<?= e(base_url('orders.php')) ?>">Rendeléseim</a>
+            <?php if (is_admin()): ?>
+              &nbsp;|&nbsp; <a class="nav__link" href="<?= e(base_url('admin/index.php')) ?>">Admin</a>
+            <?php endif; ?>
+
           <?php else: ?>
             <a class="nav__link" href="<?= e(base_url('login.php')) ?>">Bejelentkezés</a>
           <?php endif; ?>
