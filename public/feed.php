@@ -8,6 +8,7 @@ $errors = [];
 $notice = '';
 
 $gameFilter = ($_GET['game_id'] ?? '') !== '' ? (int)$_GET['game_id'] : null;
+$userFilter = trim($_GET['username'] ?? '');
 $page       = isset($_GET['page']) ? max(1,(int)$_GET['page']) : 1;
 $per        = 10;
 
@@ -47,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$res  = Post::feedWithTotal($me['user_id'] ?? null, $gameFilter, null, $page, $per, $isAdmin);
+$res  = Post::feedWithTotal($me['user_id'] ?? null, $gameFilter, null, $page, $per, $isAdmin, $userFilter);
 $rows = $res['rows'];
 $total= $res['total'];
 $pages= (int)max(1, ceil($total / $per));
@@ -69,6 +70,10 @@ ob_start(); ?>
         </option>
       <?php endforeach; ?>
     </select>
+  </div>
+  <div>
+    <label for="username">Felhasználó szerint</label>
+    <input id="username" name="username" type="text" value="<?= e($userFilter) ?>" placeholder="Felhasználó neve">
   </div>
   <div>
     <button type="submit">Szűrés</button>

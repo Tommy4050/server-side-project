@@ -92,13 +92,19 @@ include __DIR__ . '/partials/sidebar-filters.php';
       <article class="card card--game">
         <div class="card__media">
           <?php if (!empty($r['image_url'])): ?>
-            <img src="<?= e($r['image_url']) ?>" alt="<?= e($r['title']) ?>">
+            <a href="<?= e(base_url('library_game.php')) . '?game_id=' . (int)$r['game_id'] ?>">
+              <img src="<?= e($r['image_url']) ?>" alt="<?= e($r['title']) ?>">
+            </a>
           <?php else: ?>
             <div class="card__placeholder" aria-hidden="true">No image</div>
           <?php endif; ?>
         </div>
         <div class="card__body">
-          <h3 class="card__title"><?= e($r['title']) ?></h3>
+          <h3 class="card__title">
+            <a href="<?= e(base_url('game.php')) . '?game_id=' . (int)$r['game_id'] ?>">
+              <?= e($r['title']) ?>
+            </a>
+          </h3>
           <div class="card__meta">
             <span class="card__genres"><?= e($r['genres'] ?? '') ?></span>
             <span class="card__price"><?= number_format((float)$r['price'], 2, '.', ' ') ?> Ft</span>
@@ -107,8 +113,11 @@ include __DIR__ . '/partials/sidebar-filters.php';
             <small class="card__acquired">
               Hozzáadva: <?= e($r['acquired_at']) ?> · Forrás: <?= e($r['source']) ?>
             </small>
+            &nbsp;·&nbsp;
+            <a href="<?= e(base_url('library_game.php')) . '?game_id=' . (int)$r['game_id'] ?>">
+              Közösségi posztok
+            </a>
           </div>
-        </div>
       </article>
     <?php endforeach; ?>
   </section>

@@ -61,59 +61,63 @@ final class Post
         ?int $authorUserId = null,
         int $page = 1,
         int $perPage = 10,
-        bool $isAdmin = false
+        bool $isAdmin = false,
+        ?string $usernameLike = null
     ): array {
         $page    = max(1, $page);
         $perPage = max(1, min(50, $perPage));
         $offset  = ($page - 1) * $perPage;
 
-        $where = [];
-        $whereParams = [];
+        $where  = [];
+        $wparams = []; // <-- ONLY params used in WHERE
 
-        if (!$isAdmin) {
-            $where[] = "p.is_hidden = 0";
-        }
-        if ($gameId) {
-            $where[] = "p.game_id = :gid";
-            $whereParams[':gid'] = (int)$gameId;
-        }
-        if ($authorUserId) {
-            $where[] = "p.user_id = :au";
-            $whereParams[':au'] = (int)$authorUserId;
+        if (!$isAdmin)                  { $where[] = "p.is_hidden = 0"; }
+        if ($gameId)                    { $where[] = "p.game_id = :gid"; $wparams[':gid'] = (int)$gameId; }
+        if ($authorUserId)              { $where[] = "p.user_id = :au";  $wparams[':au']  = (int)$authorUserId; }
+        if ($usernameLike !== null && $usernameLike !== '') {
+            $where[] = "u.username LIKE :uname";
+            $wparams[':uname'] = '%'.$usernameLike.'%';
         }
 
         $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 
-        // COUNT query (no :uid here)
-        $sqlC = "SELECT COUNT(*) FROM posts p $whereSql";
+        // ----- TOTAL COUNT (no :uid here) -----
+        $sqlC = "SELECT COUNT(*)
+                FROM posts p
+                JOIN users u ON u.user_id = p.user_id
+                $whereSql";
         $stC = db()->prepare($sqlC);
-        $stC->execute($whereParams);
+        // bind only WHERE params that actually appear in $sqlC
+        foreach ($wparams as $k => $v) {
+            $stC->bindValue($k, $v, ($k === ':uname') ? PDO::PARAM_STR : PDO::PARAM_INT);
+        }
+        $stC->execute();
         $total = (int)$stC->fetchColumn();
 
-        // ROWS query (add :uid for liked_by_me)
-        $rowParams = $whereParams;
-        $rowParams[':uid'] = (int)($viewerUserId ?? 0);
-
+        // ----- PAGE ROWS (includes :uid) -----
         $sql = "
-          SELECT p.post_id, p.user_id, p.game_id, p.caption, p.image_path, p.is_hidden, p.created_at,
-                 u.username, g.title AS game_title,
-                 (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) AS likes_count,
-                 (SELECT COUNT(*) FROM post_comments pc WHERE pc.post_id = p.post_id AND pc.is_hidden=0) AS comments_count,
-                 CASE WHEN EXISTS(
-                     SELECT 1 FROM post_likes x
-                     WHERE x.post_id = p.post_id AND x.user_id = :uid
-                 ) THEN 1 ELSE 0 END AS liked_by_me
-          FROM posts p
-          JOIN users u ON u.user_id = p.user_id
-          LEFT JOIN games g ON g.game_id = p.game_id
-          $whereSql
-          ORDER BY p.created_at DESC, p.post_id DESC
-          LIMIT :lim OFFSET :off
+        SELECT p.post_id, p.user_id, p.game_id, p.caption, p.image_path, p.is_hidden, p.created_at,
+                u.username, g.title AS game_title,
+                (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) AS likes_count,
+                (SELECT COUNT(*) FROM post_comments pc WHERE pc.post_id = p.post_id AND pc.is_hidden=0) AS comments_count,
+                CASE WHEN EXISTS(SELECT 1 FROM post_likes x WHERE x.post_id=p.post_id AND x.user_id=:uid) THEN 1 ELSE 0 END AS liked_by_me
+        FROM posts p
+        JOIN users u ON u.user_id = p.user_id
+        LEFT JOIN games g ON g.game_id = p.game_id
+        $whereSql
+        ORDER BY p.created_at DESC, p.post_id DESC
+        LIMIT :lim OFFSET :off
         ";
         $st = db()->prepare($sql);
-        foreach ($rowParams as $k => $v) {
-            $st->bindValue($k, $v, PDO::PARAM_INT);
+
+        // :uid only used here
+        $st->bindValue(':uid', (int)($viewerUserId ?? 0), PDO::PARAM_INT);
+
+        // bind WHERE params again for this statement
+        foreach ($wparams as $k => $v) {
+            $st->bindValue($k, $v, ($k === ':uname') ? PDO::PARAM_STR : PDO::PARAM_INT);
         }
+
         $st->bindValue(':lim', $perPage, PDO::PARAM_INT);
         $st->bindValue(':off', $offset, PDO::PARAM_INT);
         $st->execute();
