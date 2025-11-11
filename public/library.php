@@ -101,13 +101,13 @@ include __DIR__ . '/partials/sidebar-filters.php';
         </div>
         <div class="card__body">
           <h3 class="card__title">
-            <a href="<?= e(base_url('game.php')) . '?game_id=' . (int)$r['game_id'] ?>">
+            <a href="<?= e(base_url('my_game.php')) . '?game_id=' . (int)$r['game_id'] ?>">
               <?= e($r['title']) ?>
             </a>
           </h3>
           <div class="card__meta">
             <span class="card__genres"><?= e($r['genres'] ?? '') ?></span>
-            <span class="card__price"><?= number_format((float)$r['price'], 2, '.', ' ') ?> Ft</span>
+            <!--<span class="card__price"><?= number_format((float)$r['price'], 2, '.', ' ') ?> Ft</span>-->
           </div>
           <div class="card__foot">
             <small class="card__acquired">
