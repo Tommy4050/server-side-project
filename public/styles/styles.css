@@ -1,0 +1,13 @@
+:root{
+  --accent:#ff2ebd;
+  --bg:#0a0a0f;
+  --card:#14131a;
+  --text:#fceaff;
+}
+
+body{
+  font-family:Inter,system-ui,Arial,sans-serif;margin:0;background:var(--bg);color:var(--text)}
+  .site-header{display:flex;align-items:center;gap:16px;padding:14px 20px;background:#050508;color:var(--text);box-shadow:0 6px 18px rgba(0,0,0,0.6)}
+  .site-header h1{margin:0;font-size:1.25rem;color:var(--accent);text-shadow:0 0 8px rgba(255,46,189,0.5)}
+  .header-search{padding:8px 12px;border-radius:10px;border:1px solid rgba(255,46,189,0.12);background:#0f0f14;color:var(--text);min-width:220px;box-shadow:0 0 8px rgba(255,46,189,0.06)
+  }

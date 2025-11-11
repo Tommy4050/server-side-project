@@ -57,7 +57,12 @@
           <li class="nav__item"><a class="nav__link" href="<?= e(base_url('store.php')) ?>">Kiemeltek</a></li>
           <li class="nav__item"><a class="nav__link" href="<?= e(base_url('store.php')) ?>?sort=new">Újdonságok</a></li>
           <li class="nav__item"><a class="nav__link" href="<?= e(base_url('store.php')) ?>?sort=top">Top eladások</a></li>
-          <li class="nav__item"><a class="nav__link" href="<?= e(base_url('store.php')) ?>?discount=1">Akciók</a></li>
+          <li class="nav__item"><?php $onSale = isset($_GET['on_sale']) && $_GET['on_sale'] === '1'; ?>
+            <a href="<?= e(base_url('store.php')) ?>?on_sale=1" <?= $onSale ? 'aria-current="page"' : '' ?>>Akciók</a>
+            <?php if ($onSale): ?>
+              &nbsp;|&nbsp; <a href="<?= e(base_url('store.php')) ?>">Összes</a>
+            <?php endif; ?>
+          </li>
         </ul>
       </nav>
     </div>
