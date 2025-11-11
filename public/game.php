@@ -1,116 +1,99 @@
 <?php
 require __DIR__ . '/../src/bootstrap.php';
 
-$gameId = isset($_GET['game_id']) ? (int)$_GET['game_id'] : 0;
+$gameId = (int)($_GET['game_id'] ?? 0);
+if ($gameId <= 0) redirect(base_url('store.php'));
 
-// Fetch game + genres
+// fetch game
 $st = db()->prepare("
-  SELECT g.game_id, g.title, g.description, g.price, g.image_url, g.publisher, g.release_date
-  FROM games g
-  WHERE g.game_id = :id AND g.is_published = 1
+  SELECT game_id, title, description, publisher, release_date, price, image_url,
+         sale_percent, sale_start, sale_end, is_published
+  FROM games
+  WHERE game_id = :id
   LIMIT 1
 ");
-$st->execute([':id' => $gameId]);
+$st->execute([':id'=>$gameId]);
 $game = $st->fetch();
-
-if (!$game) {
-    http_response_code(404);
-    echo "<!doctype html><meta charset='utf-8'><h1>404 – A játék nem található</h1>";
-    exit;
+if (!$game || (int)$game['is_published'] !== 1) {
+  redirect(base_url('store.php'));
 }
 
-$st2 = db()->prepare("
+$activeSale = ((int)$game['sale_percent'] > 0)
+  && (empty($game['sale_start']) || $game['sale_start'] <= date('Y-m-d'))
+  && (empty($game['sale_end'])   || $game['sale_end']   >= date('Y-m-d'));
+
+$finalPrice = $game['price'];
+if ($activeSale && $game['price'] !== null) {
+  $finalPrice = round(((float)$game['price']) * (100 - (int)$game['sale_percent']) / 100, 2);
+}
+
+// genres (optional nice-to-have on detail)
+$gx = db()->prepare("
   SELECT ge.name
   FROM game_genres gg
   JOIN genres ge ON ge.genre_id = gg.genre_id
   WHERE gg.game_id = :id
   ORDER BY ge.name
 ");
-$st2->execute([':id' => $gameId]);
-$genres = array_column($st2->fetchAll(), 'name');
+$gx->execute([':id'=>$gameId]);
+$genres = array_column($gx->fetchAll(), 'name');
 
-$errors = [];
-$notice = '';
-
-// Handle Add to Cart (POST)
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!verify_csrf($_POST['csrf'] ?? null)) {
-        $errors[] = 'Érvénytelen űrlap token.';
-    }
-    if (!($u = Auth::user())) {
-        $errors[] = 'A kosár használatához jelentkezz be.';
-    }
-
-    $qty = (int)($_POST['quantity'] ?? 1);
-    if ($qty < 1) $qty = 1;
-    if ($qty > 99) $qty = 99;
-
-    if (!$errors) {
-        try {
-            Cart::addItem((int)$u['user_id'], (int)$game['game_id'], $qty);
-            // Redirect to cart to avoid resubmission
-            header('Location: ' . base_url('cart.php'));
-            exit;
-        } catch (Throwable $e) {
-            $errors[] = $e->getMessage();
-        }
-    }
-}
-
-$title  = 'Játék részletek';
+$title  = e($game['title']);
 $active = 'store';
+
 include __DIR__ . '/partials/header.php';
-?>
-<?php
-$sidebarTitle = 'Információ';
-ob_start();
-?>
-<div>
-  <p><strong>Fejlesztő/Kiadó:</strong> <?= e($game['publisher'] ?? '—') ?></p>
-  <p><strong>Megjelenés:</strong> <?= e($game['release_date'] ?? '—') ?></p>
-  <p><strong>Műfajok:</strong> <?= e(implode(', ', $genres)) ?></p>
-  <p><strong>Ár:</strong> <?= number_format((float)$game['price'], 2, '.', ' ') ?> Ft</p>
-</div>
-<?php
-$sidebarContent = ob_get_clean();
-include __DIR__ . '/partials/sidebar-filters.php';
 ?>
 
 <header class="content__header">
   <h1 class="content__title"><?= e($game['title']) ?></h1>
 </header>
 
-<article class="game">
-  <div class="game__media">
+<article class="game-detail">
+  <div class="game-detail__media">
     <?php if (!empty($game['image_url'])): ?>
-      <img src="<?= e($game['image_url']) ?>" alt="<?= e($game['title']) ?>">
-    <?php else: ?>
-      <div class="card__placeholder" aria-hidden="true">No image</div>
+      <img src="<?= e($game['image_url']) ?>" alt="<?= e($game['title']) ?>" style="max-width:100%;height:auto;">
     <?php endif; ?>
   </div>
-
-  <div class="game__body">
-    <h2>Leírás</h2>
-    <p><?= nl2br(e($game['description'] ?? '')) ?></p>
-
-    <?php if ($errors): ?>
-      <div>
-        <h3>Hibák:</h3>
-        <ul><?php foreach ($errors as $err): ?><li><?= e($err) ?></li><?php endforeach; ?></ul>
-      </div>
+  <div class="game-detail__body">
+    <?php if (!empty($genres)): ?>
+      <p><strong>Műfajok:</strong> <?= e(implode(', ', $genres)) ?></p>
     <?php endif; ?>
 
-    <section class="purchase">
-      <h2>Vásárlás</h2>
-      <p><strong>Ár:</strong> <?= number_format((float)$game['price'], 2, '.', ' ') ?> Ft</p>
+    <?php if (!empty($game['publisher'])): ?>
+      <p><strong>Kiadó:</strong> <?= e($game['publisher']) ?></p>
+    <?php endif; ?>
 
-      <form method="post" action="">
+    <?php if (!empty($game['release_date'])): ?>
+      <p><strong>Megjelenés:</strong> <?= e($game['release_date']) ?></p>
+    <?php endif; ?>
+
+    <?php if (!empty($game['description'])): ?>
+      <p><?= nl2br(e($game['description'])) ?></p>
+    <?php endif; ?>
+
+    <div class="game-detail__buy">
+      <?php if ($activeSale): ?>
+        <div>
+          <span class="badge">-<?= (int)$game['sale_percent'] ?>%</span>
+          <span style="text-decoration:line-through; opacity:.7; margin-left:6px;">
+            <?= number_format((float)$game['price'], 2, '.', ' ') ?> Ft
+          </span>
+          <span style="font-weight:700; margin-left:6px;">
+            <?= number_format((float)$finalPrice, 2, '.', ' ') ?> Ft
+          </span>
+        </div>
+      <?php else: ?>
+        <div><strong><?= number_format((float)$game['price'], 2, '.', ' ') ?> Ft</strong></div>
+      <?php endif; ?>
+
+      <!-- Add to cart: returns here and auto-opens mini-cart -->
+      <form method="post" action="<?= e(base_url('add_to_cart.php')) ?>" style="margin-top:8px;">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <label for="qty">Mennyiség</label>
-        <input id="qty" name="quantity" type="number" value="1" min="1" max="99">
+        <input type="hidden" name="game_id" value="<?= (int)$game['game_id'] ?>">
+        <input type="hidden" name="back_url" value="<?= e($_SERVER['REQUEST_URI']) ?>">
         <button type="submit">Kosárba</button>
       </form>
-    </section>
+    </div>
   </div>
 </article>
 

@@ -1,229 +1,300 @@
 @startuml
-' Webshop + social features ER diagram (crow's foot)
-' Copy into any PlantUML renderer
-
 hide methods
 skinparam linetype ortho
 left to right direction
+title GameBay – ER diagram (based on DB dump)
 
-entity "User" as User {
-  *user_id : INT <<PK>>
+' ========= CORE ENTITIES =========
+entity "users" as users {
+  *user_id : BIGINT <<PK>>
   --
-  username : VARCHAR(50) <<UNIQUE>>
-  email : VARCHAR(255) <<UNIQUE>>
+  username : VARCHAR(50)
+  email : VARCHAR(255)
   password_hash : VARCHAR(255)
+  status : ENUM
+  is_admin : TINYINT(1)
+  banned_until : DATETIME
+  ban_reason : VARCHAR(255)
+  banned_by : BIGINT
   created_at : DATETIME
-  status : ENUM('active','suspended','deleted')
-  -- billing (current default)
+  --
   billing_full_name : VARCHAR(100)
   billing_address1 : VARCHAR(150)
   billing_address2 : VARCHAR(150)
   billing_city : VARCHAR(100)
   billing_postal_code : VARCHAR(20)
-  billing_country : VARCHAR(2)
+  billing_country : CHAR(2)
 }
 
-entity "Role" as Role {
-  *role_id : INT <<PK>>
-  name : ENUM('admin','user') <<UNIQUE>>
+entity "roles" as roles {
+  *role_id : TINYINT <<PK>>
+  --
+  name : ENUM('admin','user') <<UNQ>>
 }
 
-entity "UserRole" as UserRole {
-  *user_id : INT <<PK,FK>>
-  *role_id : INT <<PK,FK>>
+entity "user_roles" as user_roles {
+  *user_id : BIGINT <<PK,FK>>
+  *role_id : TINYINT <<PK,FK>>
+  --
   assigned_at : DATETIME
 }
 
-entity "Game" as Game {
-  *game_id : INT <<PK>>
-  title : VARCHAR(150) <<UNIQUE>>
+entity "games" as games {
+  *game_id : BIGINT <<PK>>
+  --
+  title : VARCHAR(150)
   description : TEXT
-  price : DECIMAL(10,2)
-  image_url : VARCHAR(255)
   publisher : VARCHAR(120)
+  price : DECIMAL(10,2)
   release_date : DATE
-  is_published : BOOLEAN
+  is_published : TINYINT(1)
+  -- sales
+  sale_percent : TINYINT
+  sale_start : DATE
+  sale_end : DATE
+  -- media & meta
+  image_url : VARCHAR(255)
   created_at : DATETIME
   updated_at : DATETIME
 }
 
-entity "Genre" as Genre {
-  *genre_id : INT <<PK>>
-  name : VARCHAR(50) <<UNIQUE>>
+entity "genres" as genres {
+  *genre_id : BIGINT <<PK>>
+  --
+  name : VARCHAR(50) <<UNQ>>
 }
 
-entity "GameGenre" as GameGenre {
-  *game_id : INT <<PK,FK>>
-  *genre_id : INT <<PK,FK>>
+entity "game_genres" as game_genres {
+  *game_id : BIGINT <<PK,FK>>
+  *genre_id : BIGINT <<PK,FK>>
 }
 
-entity "ShoppingCart" as Cart {
-  *cart_id : INT <<PK>>
-  user_id : INT <<FK>>
+' ========= STORE / CART / ORDERS =========
+entity "shopping_carts" as carts {
+  *cart_id : BIGINT <<PK>>
+  --
+  user_id : BIGINT <<FK>>
   status : ENUM('active','abandoned','converted')
   created_at : DATETIME
   updated_at : DATETIME
 }
 
-entity "CartItem" as CartItem {
-  *cart_item_id : INT <<PK>>
-  cart_id : INT <<FK>>
-  game_id : INT <<FK>>
+entity "cart_items" as cart_items {
+  *cart_item_id : BIGINT <<PK>>
+  --
+  cart_id : BIGINT <<FK>>
+  game_id : BIGINT <<FK>>
   quantity : INT
   unit_price_at_add : DECIMAL(10,2)
   added_at : DATETIME
 }
 
-entity "Order" as Order {
-  *order_id : INT <<PK>>
-  user_id : INT <<FK>>
+entity "orders" as orders {
+  *order_id : BIGINT <<PK>>
+  --
+  user_id : BIGINT <<FK>>
   status : ENUM('pending','paid','failed','refunded','cancelled')
   total_amount : DECIMAL(10,2)
   placed_at : DATETIME
   payment_method : ENUM('card','paypal','other')
-  -- snapshot billing details
+  -- billing snapshot
   bill_full_name : VARCHAR(100)
   bill_address1 : VARCHAR(150)
   bill_address2 : VARCHAR(150)
   bill_city : VARCHAR(100)
   bill_postal_code : VARCHAR(20)
-  bill_country : VARCHAR(2)
+  bill_country : CHAR(2)
 }
 
-entity "OrderItem" as OrderItem {
-  *order_item_id : INT <<PK>>
-  order_id : INT <<FK>>
-  game_id : INT <<FK>>
+entity "order_items" as order_items {
+  *order_item_id : BIGINT <<PK>>
+  --
+  order_id : BIGINT <<FK>>
+  game_id : BIGINT <<FK>>
   quantity : INT
   unit_price : DECIMAL(10,2)
 }
 
-entity "UserLibrary" as Library {
-  *user_id : INT <<PK,FK>>
-  *game_id : INT <<PK,FK>>
+entity "libraries" as libraries {
+  *user_id : BIGINT <<PK,FK>>
+  *game_id : BIGINT <<PK,FK>>
+  --
   acquired_at : DATETIME
   source : ENUM('purchase','gift','admin_grant')
+  total_play_seconds : INT
 }
 
-entity "Post (Screenshot)" as Post {
-  *post_id : INT <<PK>>
-  user_id : INT <<FK>>
-  game_id : INT <<FK>>
+' ========= COMMUNITY =========
+entity "posts" as posts {
+  *post_id : BIGINT <<PK>>
+  --
+  user_id : BIGINT <<FK>>
+  game_id : BIGINT <<FK>>
   caption : VARCHAR(500)
   image_path : VARCHAR(255)
   visibility : ENUM('public','friends','private')
+  is_hidden : TINYINT(1)
+  hidden_reason : VARCHAR(255)
+  moderated_by : BIGINT <<FK,nullable>>
+  is_removed : TINYINT(1)
   created_at : DATETIME
   updated_at : DATETIME
-  is_removed : BOOLEAN
 }
 
-entity "Comment" as Comment {
-  *comment_id : INT <<PK>>
-  post_id : INT <<FK>>
-  user_id : INT <<FK>>
+entity "post_comments" as post_comments {
+  *comment_id : BIGINT <<PK>>
+  --
+  post_id : BIGINT <<FK>>
+  parent_comment_id : BIGINT <<FK,nullable>>
+  user_id : BIGINT <<FK>>
   body : VARCHAR(1000)
+  is_hidden : TINYINT(1)
   created_at : DATETIME
-  is_removed : BOOLEAN
 }
 
-entity "Like" as Like {
-  *post_id : INT <<PK,FK>>
-  *user_id : INT <<PK,FK>>
-  liked_at : DATETIME
+entity "post_likes" as post_likes {
+  *post_id : BIGINT <<PK,FK>>
+  *user_id : BIGINT <<PK,FK>>
+  --
+  created_at : DATETIME
 }
 
-entity "Friendship" as Friendship {
-  *user_id : INT <<PK,FK>>
-  *friend_user_id : INT <<PK,FK>>
-  status : ENUM('pending','accepted','blocked')
-  requested_at : DATETIME
-  responded_at : DATETIME
+' (Legacy generic comments/likes exist in DB; app uses post_* tables.)
+entity "comments" as comments {
+  *comment_id : BIGINT <<PK>>
+  --
+  post_id : BIGINT <<FK>>
+  user_id : BIGINT <<FK>>
+  body : VARCHAR(1000)
+  is_removed : TINYINT(1)
+  created_at : DATETIME
 }
 
-entity "ModerationAction" as ModAction {
-  *action_id : INT <<PK>>
-  admin_user_id : INT <<FK>>
-  target_post_id : INT <<FK>>
-  target_comment_id : INT <<FK>>
-  target_user_id : INT <<FK>>
+' ========= FRIENDS =========
+entity "friend_requests" as friend_requests {
+  *request_id : BIGINT <<PK>>
+  --
+  requester_id : BIGINT <<FK>>
+  addressee_id : BIGINT <<FK>>
+  status : ENUM('pending','accepted','declined','canceled')
+  created_at : DATETIME
+  decided_at : DATETIME?
+}
+
+entity "friendships" as friendships {
+  *user_id_a : BIGINT <<PK,FK>>
+  *user_id_b : BIGINT <<PK,FK>>
+  --
+  since : DATETIME
+}
+
+' ========= PLAYTIME / PASSWORD RESET =========
+entity "play_sessions" as play_sessions {
+  *session_id : INT <<PK>>
+  --
+  user_id : BIGINT <<FK>>
+  game_id : BIGINT <<FK>>
+  started_at : DATETIME
+  ended_at : DATETIME?
+  duration_seconds : INT?
+}
+
+entity "password_resets" as password_resets {
+  *id : BIGINT <<PK>>
+  --
+  user_id : BIGINT <<FK>>
+  token_hash : CHAR(64) <<UNQ>>
+  expires_at : DATETIME
+  used_at : DATETIME?
+  created_at : DATETIME
+}
+
+' ========= MODERATION / ADMIN AUDIT =========
+entity "moderation_actions" as moderation_actions {
+  *action_id : BIGINT <<PK>>
+  --
+  admin_user_id : BIGINT <<FK>>
+  target_post_id : BIGINT?
+  target_comment_id : BIGINT?  ' -> comments.comment_id
+  target_user_id : BIGINT?
   action_type : ENUM('remove_post','remove_comment','suspend_user','unsuspend_user')
-  reason : VARCHAR(500)
+  reason : VARCHAR(500)?
   created_at : DATETIME
 }
 
-entity "GameAdminAction" as GameAction {
-  *action_id : INT <<PK>>
-  admin_user_id : INT <<FK>>
-  game_id : INT <<FK>>
+entity "game_admin_actions" as game_admin_actions {
+  *action_id : BIGINT <<PK>>
+  --
+  admin_user_id : BIGINT <<FK>>
+  game_id : BIGINT <<FK>>
   action_type : ENUM('create','update','delete','publish','unpublish')
-  notes : VARCHAR(500)
+  notes : VARCHAR(500)?
   created_at : DATETIME
 }
 
-' =====================
-' Relationships (crow's foot)
-' =====================
-User ||--o{ UserRole : has
-Role ||--o{ UserRole : includes
+' ========= RELATIONSHIPS =========
 
-User ||--o{ Cart : owns
-Cart ||--o{ CartItem : contains
-Game ||--o{ CartItem : is
+' roles
+users ||--o{ user_roles : assigns
+roles ||--o{ user_roles : maps
 
-User ||--o{ Order : places
-Order ||--o{ OrderItem : has
-Game ||--o{ OrderItem : purchased
+' catalog
+games ||--o{ game_genres : has
+genres ||--o{ game_genres : in
 
-User ||--o{ Library : owns
-Game ||--o{ Library : appears in
+' cart & order
+users ||--o{ carts : owns
+carts ||--o{ cart_items : contains
+games ||--o{ cart_items : item
 
-Game ||--o{ GameGenre : categorized by
-Genre ||--o{ GameGenre : categorizes
+users ||--o{ orders : places
+orders ||--o{ order_items : has
+games ||--o{ order_items : purchased
 
-User ||--o{ Post : creates
-Game ||--o{ Post : referenced by
-Post ||--o{ Comment : has
-User ||--o{ Comment : writes
-Post ||--o{ Like : receives
-User ||--o{ Like : gives
+' library & playtime
+users ||--o{ libraries : owns
+games ||--o{ libraries : appears_in
+users ||--o{ play_sessions : plays
+games ||--o{ play_sessions : session_for
 
-User ||--o{ Friendship : user
-User ||--o{ Friendship : friend
+' community
+users ||--o{ posts : authors
+games ||--o{ posts : related_to
+posts ||--o{ post_comments : has
+post_comments |o--o{ post_comments : replies_to
+users ||--o{ post_comments : writes
+posts ||--o{ post_likes : liked
+users ||--o{ post_likes : likes
 
-User ||--o{ ModAction : performed by (admin)
-Post ||--o{ ModAction : target post
-Comment ||--o{ ModAction : target comment
-User ||--o{ ModAction : target user
+' moderation
+users ||--o{ moderation_actions : "admin_user_id"
+posts |o--o{ moderation_actions : "target_post_id"
+comments |o--o{ moderation_actions : "target_comment_id"
+users |o--o{ moderation_actions : "target_user_id"
 
-User ||--o{ GameAction : performed by (admin)
-Game ||--o{ GameAction : target game
+' admin audit on games
+users ||--o{ game_admin_actions : "admin_user_id"
+games ||--o{ game_admin_actions : acted_on
 
-' =====================
-' Legend & Relationship Explanations
-' =====================
-legend bottom
-<b>Crow's Foot jelölés – magyarázat</b>
-- <b>||</b> = pontosan egy (kötelező egy)
-- <b>o|</b> = nulla vagy egy (opcionális egy)
-- <b>|{</b> = egy vagy több (kötelező sok)
-- <b>o{</b> = nulla vagy több (opcionális sok)
+' friends
+users ||--o{ friend_requests : requester
+users ||--o{ friend_requests : addressee
+users ||--o{ friendships : user_a
+users ||--o{ friendships : user_b
 
-<b>Kapcsolatok összefoglalója</b>
-- <b>User ↔ Role</b>: sok-sok kapcsolat a <i>UserRole</i> táblán keresztül. Egy felhasználónak több szerepe lehet, egy szerep több felhasználóhoz rendelhető.
-- <b>User ↔ ShoppingCart</b>: egy felhasználó (||) nulla vagy több (o{) kosarat birtokol. Tipikusan egy aktív kosár, a többi elhagyott/konvertált.
-- <b>Cart ↔ CartItem</b>: egy kosár (||) nulla vagy több (o{) tételt tartalmaz; minden tétel pontosan egy játékra hivatkozik.
-- <b>Game ↔ CartItem</b>: egy játék (||) nulla vagy több (o{) kosár-tételben szerepelhet.
-- <b>User ↔ Order</b>: egy felhasználó (||) nulla vagy több (o{) rendelést ad le.
-- <b>Order ↔ OrderItem</b>: egy rendelés (||) egy vagy több (|{) tételt tartalmaz; minden tétel pontosan egy játékra hivatkozik.
-- <b>Game ↔ OrderItem</b>: egy játék (||) nulla vagy több (o{) rendelési tételben szerepelhet.
-- <b>User ↔ Library</b>: sok-sok kapcsolat felhasználók és játékok között a <i>Library</i> táblán keresztül (tulajdon). Egy felhasználó nulla vagy több játékot birtokolhat; egy játék több könyvtárban is megjelenhet.
-- <b>Game ↔ Genre</b>: sok-sok kapcsolat a <i>GameGenre</i> táblán keresztül. Egy játék több műfajú lehet; egy műfaj sok játékot kategorizál.
-- <b>User ↔ Post</b>: egy felhasználó (||) nulla vagy több (o{) bejegyzést (screenshot) hoz létre; minden bejegyzés pontosan egy játékhoz kapcsolódik.
-- <b>Post ↔ Comment</b>: egy bejegyzés (||) nulla vagy több (o{) kommentet kaphat; minden kommentet pontosan egy felhasználó ír.
-- <b>Post ↔ Like</b>: egy bejegyzés (||) nulla vagy több (o{) lájkot kap; minden lájkot pontosan egy felhasználó ad (összetett PK megakadályozza a duplikációt).
-- <b>User ↔ Friendship</b>: önhivatkozó sok-sok kapcsolat két idegen kulccsal. Minden sor egy ismerős-kérés/kant (állapot: pending/accepted/blocked).
-- <b>ModerationAction</b>: admin felhasználó hajtja végre egy célon (post/comment/user). Naplózza a moderációs eseményeket.
-- <b>GameAdminAction</b>: admin felhasználó művelete a játékon (create/update/delete/publish/unpublish) – audit célokra.
-endlegend
+' password reset
+users ||--o{ password_resets : resets
+
+' legacy comments table (present in DB, not used by app feeds)
+users ||--o{ comments : writes
+posts ||--o{ comments : has
+
+note as N1
+Crow's foot:
+  ||  = exactly one
+  |o  = zero or one
+  }|  = one or many
+  }o  = zero or many
+end note
 
 @enduml

@@ -2,108 +2,193 @@
 
 final class Cart
 {
-    /** Get active cart id for user, creating one if missing. */
-    public static function ensureActiveCartId(int $userId): int {
-        // Try to find an active cart
-        $st = db()->prepare("SELECT cart_id FROM shopping_carts WHERE user_id = :u AND status = 'active' LIMIT 1");
-        $st->execute([':u' => $userId]);
-        $id = $st->fetchColumn();
-        if ($id) return (int)$id;
+    /** Find or create the active cart for a user, return its id */
+    public static function activeCartId(int $userId): int {
+        $st = db()->prepare("SELECT cart_id FROM shopping_carts WHERE user_id=:u AND status='active' LIMIT 1");
+        $st->execute([':u'=>$userId]);
+        $id = (int)$st->fetchColumn();
+        if ($id) return $id;
 
-        // Create one
-        $st = db()->prepare("INSERT INTO shopping_carts (user_id, status, created_at, updated_at) VALUES (:u, 'active', NOW(), NOW())");
-        $st->execute([':u' => $userId]);
+        $st = db()->prepare("INSERT INTO shopping_carts (user_id, status, created_at, updated_at) VALUES (:u,'active',NOW(),NOW())");
+        $st->execute([':u'=>$userId]);
         return (int)db()->lastInsertId();
     }
 
-    /** Add or increase a game in the cart. */
-    public static function addItem(int $userId, int $gameId, int $quantity = 1): void {
-        $quantity = max(1, $quantity);
-        $cartId = self::ensureActiveCartId($userId);
+    /** Small summary used by the mini-cart */
+    public static function mini(int $userId): array {
+        $cartId = self::activeCartId($userId);
 
-        // Snapshot the current price of the game
-        $stG = db()->prepare("SELECT price FROM games WHERE game_id = :g LIMIT 1");
-        $stG->execute([':g' => $gameId]);
-        $price = $stG->fetchColumn();
-        if ($price === false) {
-            throw new RuntimeException('A játék nem található.');
-        }
-
-        // Upsert: one line per game per cart
-        // First try update quantity if exists
-        $stU = db()->prepare("UPDATE cart_items
-                              SET quantity = quantity + :q, added_at = NOW()
-                              WHERE cart_id = :c AND game_id = :g");
-        $stU->execute([':q' => $quantity, ':c' => $cartId, ':g' => $gameId]);
-
-        if ($stU->rowCount() === 0) {
-            $stI = db()->prepare("INSERT INTO cart_items (cart_id, game_id, quantity, unit_price_at_add, added_at)
-                                  VALUES (:c, :g, :q, :p, NOW())");
-            $stI->execute([':c' => $cartId, ':g' => $gameId, ':q' => $quantity, ':p' => $price]);
-        }
-
-        // Touch cart
-        db()->prepare("UPDATE shopping_carts SET updated_at = NOW() WHERE cart_id = :c")->execute([':c' => $cartId]);
-    }
-
-    /** Current cart item count (sum qty). */
-    public static function itemCount(int $userId): int {
-        $st = db()->prepare("SELECT SUM(ci.quantity) FROM shopping_carts c
-                             LEFT JOIN cart_items ci ON ci.cart_id = c.cart_id
-                             WHERE c.user_id = :u AND c.status = 'active'");
-        $st->execute([':u' => $userId]);
-        return (int)($st->fetchColumn() ?: 0);
-    }
-
-    /** Fetch active cart lines with game info. */
-    public static function getActiveCart(int $userId): array {
-        $st = db()->prepare("
-          SELECT c.cart_id, ci.cart_item_id, ci.game_id, g.title, g.image_url,
-                 ci.quantity, ci.unit_price_at_add,
-                 (ci.quantity * ci.unit_price_at_add) AS line_total
-          FROM shopping_carts c
-          LEFT JOIN cart_items ci ON ci.cart_id = c.cart_id
-          LEFT JOIN games g ON g.game_id = ci.game_id
-          WHERE c.user_id = :u AND c.status = 'active'
-          ORDER BY ci.added_at DESC
-        ");
-        $st->execute([':u' => $userId]);
+        $sql = "
+          SELECT ci.cart_item_id, ci.quantity, ci.unit_price_at_add AS unit_price,
+                 g.game_id, g.title, g.image_url
+          FROM cart_items ci
+          JOIN games g ON g.game_id = ci.game_id
+          WHERE ci.cart_id = :cid
+          ORDER BY g.title
+        ";
+        $st = db()->prepare($sql);
+        $st->execute([':cid'=>$cartId]);
         $rows = $st->fetchAll();
 
-        // Sum totals
-        $total = 0.0;
+        $total = 0.0; $count = 0;
         foreach ($rows as $r) {
-            $total += (float)($r['line_total'] ?? 0);
+            $total += (float)$r['unit_price'] * (int)$r['quantity'];
+            $count += (int)$r['quantity'];
         }
-        return ['rows' => $rows, 'total' => $total];
+        return ['cart_id'=>$cartId, 'items'=>$rows, 'total'=>$total, 'count'=>$count];
     }
 
-    /** Update a line's quantity (1..99). If qty < 1 => delete line. Ensures the line belongs to the user's active cart. */
-    public static function updateItemQuantity(int $userId, int $cartItemId, int $quantity): void {
-        $quantity = max(0, min(99, $quantity));
-        $cartId = self::ensureActiveCartId($userId);
+    /** Full cart for the main cart page */
+    public static function getActiveCart(int $userId): array {
+        $cartId = self::activeCartId($userId);
 
-        if ($quantity === 0) {
-            $sql = "DELETE ci FROM cart_items ci
-                    WHERE ci.cart_item_id = :ci
-                      AND ci.cart_id = :c";
-            db()->prepare($sql)->execute([':ci' => $cartItemId, ':c' => $cartId]);
-        } else {
-            $sql = "UPDATE cart_items ci
-                    SET ci.quantity = :q, ci.added_at = NOW()
-                    WHERE ci.cart_item_id = :ci AND ci.cart_id = :c";
-            db()->prepare($sql)->execute([':q' => $quantity, ':ci' => $cartItemId, ':c' => $cartId]);
+        // Cart header row (optional, if you store more fields)
+        $cartRow = [
+            'cart_id'   => $cartId,
+            'status'    => 'active',
+            'created_at'=> null,
+            'updated_at'=> null,
+        ];
+        try {
+            $c = db()->prepare("SELECT cart_id, user_id, status, created_at, updated_at FROM shopping_carts WHERE cart_id=:id LIMIT 1");
+            $c->execute([':id'=>$cartId]);
+            if ($x = $c->fetch()) {
+                $cartRow = $x;
+            }
+        } catch (Throwable $e) {}
+
+        // Items (you can extend the fields as needed)
+        $sql = "
+          SELECT ci.cart_item_id, ci.quantity, ci.unit_price_at_add AS unit_price,
+                 g.game_id, g.title, g.image_url, g.publisher
+          FROM cart_items ci
+          JOIN games g ON g.game_id = ci.game_id
+          WHERE ci.cart_id = :cid
+          ORDER BY g.title
+        ";
+        $st = db()->prepare($sql);
+        $st->execute([':cid'=>$cartId]);
+        $items = $st->fetchAll();
+
+        $subtotal = 0.0; $count = 0;
+        foreach ($items as &$it) {
+            $it['line_total'] = ((float)$it['unit_price']) * (int)$it['quantity'];
+            $subtotal += $it['line_total'];
+            $count += (int)$it['quantity'];
         }
-        db()->prepare("UPDATE shopping_carts SET updated_at = NOW() WHERE cart_id = :c")->execute([':c' => $cartId]);
+        unset($it);
+
+        return [
+            'cart'     => $cartRow,
+            'items'    => $items,
+            'subtotal' => $subtotal,
+            'count'    => $count,
+        ];
     }
 
-    /** Remove a line, ensuring it belongs to the user's active cart. */
+    public static function updateQty(int $userId, int $cartItemId, int $qty): void {
+        $qty = max(1, min(99, $qty));
+        $sql = "UPDATE cart_items ci
+                  JOIN shopping_carts c ON c.cart_id = ci.cart_id
+                 SET ci.quantity=:q, c.updated_at=NOW()
+               WHERE ci.cart_item_id=:id AND c.user_id=:u AND c.status='active'";
+        $st = db()->prepare($sql);
+        $st->execute([':q'=>$qty, ':id'=>$cartItemId, ':u'=>$userId]);
+    }
+
     public static function removeItem(int $userId, int $cartItemId): void {
-        $cartId = self::ensureActiveCartId($userId);
         $sql = "DELETE ci FROM cart_items ci
-                WHERE ci.cart_item_id = :ci
-                  AND ci.cart_id = :c";
-        db()->prepare($sql)->execute([':ci' => $cartItemId, ':c' => $cartId]);
-        db()->prepare("UPDATE shopping_carts SET updated_at = NOW() WHERE cart_id = :c")->execute([':c' => $cartId]);
+                JOIN shopping_carts c ON c.cart_id = ci.cart_id
+               WHERE ci.cart_item_id=:id AND c.user_id=:u AND c.status='active'";
+        $st = db()->prepare($sql);
+        $st->execute([':id'=>$cartItemId, ':u'=>$userId]);
     }
+
+    public static function addItem(int $userId, int $gameId, int $qty = 1): void {
+    $qty = max(1, min(99, $qty));
+
+    // 0) Ensure user doesn’t already own the game (optional, but common)
+    $own = db()->prepare("SELECT 1 FROM libraries WHERE user_id=:u AND game_id=:g LIMIT 1");
+    $own->execute([':u'=>$userId, ':g'=>$gameId]);
+    if ($own->fetchColumn()) {
+        throw new RuntimeException('Ez a játék már a könyvtáradban van.');
+    }
+
+    // 1) Load game + determine current unit price (respect active sale)
+    $gx = db()->prepare("
+        SELECT price, is_published, sale_percent, sale_start, sale_end
+        FROM games
+        WHERE game_id = :g
+        LIMIT 1
+    ");
+    $gx->execute([':g'=>$gameId]);
+    $game = $gx->fetch();
+    if (!$game) {
+        throw new RuntimeException('A játék nem található.');
+    }
+    if (isset($game['is_published']) && (int)$game['is_published'] !== 1) {
+        throw new RuntimeException('A játék nem elérhető.');
+    }
+
+    $price = (float)($game['price'] ?? 0);
+    $salePercent = (int)($game['sale_percent'] ?? 0);
+    $saleStart   = $game['sale_start'] ?? null;
+    $saleEnd     = $game['sale_end'] ?? null;
+
+    $today = date('Y-m-d');
+    $activeSale = $salePercent > 0
+        && (empty($saleStart) || $saleStart <= $today)
+        && (empty($saleEnd)   || $saleEnd   >= $today);
+
+    $unit = $price;
+    if ($activeSale && $price !== null) {
+        $unit = round(((float)$price) * (100 - $salePercent) / 100, 2);
+    }
+
+    // 2) Ensure there is an active cart
+    $cartId = self::activeCartId($userId);
+
+    // 3) If item already in cart -> bump quantity; else insert new row
+    db()->beginTransaction();
+    try {
+        $st = db()->prepare("SELECT cart_item_id, quantity FROM cart_items WHERE cart_id=:c AND game_id=:g LIMIT 1");
+        $st->execute([':c'=>$cartId, ':g'=>$gameId]);
+        $row = $st->fetch();
+
+        if ($row) {
+            $newQty = max(1, min(99, ((int)$row['quantity']) + $qty));
+            $upd = db()->prepare("
+                UPDATE cart_items SET quantity=:q WHERE cart_item_id=:id
+            ");
+            $upd->execute([':q'=>$newQty, ':id'=>(int)$row['cart_item_id']]);
+        } else {
+            $ins = db()->prepare("
+                INSERT INTO cart_items (cart_id, game_id, quantity, unit_price_at_add, created_at)
+                VALUES (:c, :g, :q, :p, NOW())
+            ");
+            // If you don’t have created_at, this NOW() is harmless; remove the column if needed.
+            try {
+                $ins->execute([':c'=>$cartId, ':g'=>$gameId, ':q'=>$qty, ':p'=>$unit]);
+            } catch (Throwable $e) {
+                // Fallback for schemas without created_at
+                $insNoTs = db()->prepare("
+                    INSERT INTO cart_items (cart_id, game_id, quantity, unit_price_at_add)
+                    VALUES (:c, :g, :q, :p)
+                ");
+                $insNoTs->execute([':c'=>$cartId, ':g'=>$gameId, ':q'=>$qty, ':p'=>$unit]);
+            }
+        }
+
+        // touch cart updated_at if column exists
+        try {
+            db()->prepare("UPDATE shopping_carts SET updated_at=NOW() WHERE cart_id=:id")->execute([':id'=>$cartId]);
+        } catch (Throwable $e) {}
+
+        db()->commit();
+    } catch (Throwable $e) {
+        db()->rollBack();
+        throw $e;
+    }
+}
+
 }

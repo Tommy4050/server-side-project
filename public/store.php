@@ -24,7 +24,7 @@ if ($genreId) {
   $params[':gid'] = $genreId;
 }
 
-// Only show items with an *active* sale if requested
+// Only show active sale items if requested
 if ($onSale) {
   $where[] = "(g.sale_percent > 0
               AND (g.sale_start IS NULL OR g.sale_start <= CURRENT_DATE())
@@ -39,13 +39,8 @@ $genres = db()->query("SELECT genre_id, name FROM genres ORDER BY name")->fetchA
 // Fetch games (include sale fields)
 $sql = "
   SELECT
-    g.game_id,
-    g.title,
-    g.price,
-    g.image_url,
-    g.sale_percent,
-    g.sale_start,
-    g.sale_end
+    g.game_id, g.title, g.price, g.image_url,
+    g.sale_percent, g.sale_start, g.sale_end
   FROM games g
   $whereSql
   $exists
@@ -105,25 +100,11 @@ $sidebarTitle   = 'Áruház szűrők';
 
 include __DIR__ . '/partials/header.php';
 include __DIR__ . '/partials/sidebar-filters.php';
-
-// Quick links for Akciók / Összes while preserving other filters
-$akciokUrl = base_url('store.php') . '?' . e(http_build_query(array_merge($_GET, ['on_sale' => '1'])));
-$osszesUrl = base_url('store.php') . '?' . e(http_build_query(array_diff_key($_GET, ['on_sale' => true])));
 ?>
 
 <header class="content__header">
   <h1 class="content__title">Áruház</h1>
-  <p class="content__meta">
-    Megjelenített játékok: <strong><?= count($games) ?></strong>
-    &nbsp;·&nbsp;
-    <a href="<?= $akciokUrl ?>" <?= $onSale ? 'aria-current="page"' : '' ?>>Akciók</a>
-    <?php if ($onSale): ?>
-      &nbsp;|&nbsp; <a href="<?= $osszesUrl ?>">Összes</a>
-    <?php endif; ?>
-  </p>
-  <?php if ($onSale): ?>
-    <p style="margin-top:4px; color:#0a7;">Az „Akciók” szűrő aktív – csak a jelenleg akciós játékok láthatók.</p>
-  <?php endif; ?>
+  <p class="content__meta">Megjelenített játékok: <strong><?= count($games) ?></strong></p>
 </header>
 
 <?php if (!$games): ?>
@@ -135,7 +116,6 @@ $osszesUrl = base_url('store.php') . '?' . e(http_build_query(array_diff_key($_G
   <section class="grid grid--store" aria-label="Játékok">
     <?php foreach ($games as $g): ?>
       <?php
-        // Decide if sale is active today (same logic as admin list)
         $activeSale = ((int)$g['sale_percent'] > 0)
           && (empty($g['sale_start']) || $g['sale_start'] <= date('Y-m-d'))
           && (empty($g['sale_end'])   || $g['sale_end']   >= date('Y-m-d'));
@@ -158,18 +138,25 @@ $osszesUrl = base_url('store.php') . '?' . e(http_build_query(array_diff_key($_G
           <div class="card__meta">
             <?php if ($activeSale): ?>
               <span class="badge">-<?= (int)$g['sale_percent'] ?>%</span>
-              <span class="card__price" style="text-decoration:line-through; opacity:.7; margin-left:6px;">
+              <span style="text-decoration:line-through; opacity:.7; margin-left:6px;">
                 <?= number_format((float)$g['price'], 2, '.', ' ') ?> Ft
               </span>
-              <span class="card__price" style="font-weight:700; margin-left:6px;">
+              <span style="font-weight:700; margin-left:6px;">
                 <?= number_format((float)$finalPrice, 2, '.', ' ') ?> Ft
               </span>
             <?php else: ?>
-              <span class="card__price"><?= number_format((float)$g['price'], 2, '.', ' ') ?> Ft</span>
+              <span><?= number_format((float)$g['price'], 2, '.', ' ') ?> Ft</span>
             <?php endif; ?>
           </div>
           <div class="card__foot">
-            <a class="card__link" href="<?= e(base_url('game.php')) . '?game_id=' . (int)$g['game_id'] ?>">Részletek</a>
+            <!-- Add to cart: returns to same page and auto-opens mini-cart -->
+            <form method="post" action="<?= e(base_url('add_to_cart.php')) ?>" style="display:inline;">
+              <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+              <input type="hidden" name="game_id" value="<?= (int)$g['game_id'] ?>">
+              <input type="hidden" name="back_url" value="<?= e($_SERVER['REQUEST_URI']) ?>">
+              <button type="submit">Kosárba</button>
+            </form>
+            &nbsp; <a class="card__link" href="<?= e(base_url('game.php')) . '?game_id=' . (int)$g['game_id'] ?>">Részletek</a>
           </div>
         </div>
       </article>

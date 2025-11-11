@@ -1,117 +1,59 @@
 <?php
 require __DIR__ . '/../src/bootstrap.php';
+require_once __DIR__ . '/../src/Cart.php';
 
-$u = Auth::user();
-if (!$u) redirect(base_url('login.php'));
+$me = Auth::user();
+if (!$me) redirect(base_url('login.php'));
 
-$errors = [];
-$notice = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!verify_csrf($_POST['csrf'] ?? null)) {
-        $errors[] = 'Érvénytelen űrlap token.';
-    } else {
-        $action = $_POST['action'] ?? '';
-        try {
-            if ($action === 'update' || $action === 'remove') {
-                $cartItemId = (int)($_POST['cart_item_id'] ?? 0);
-                if ($cartItemId <= 0) throw new RuntimeException('Érvénytelen tétel.');
-            }
-
-            if ($action === 'update') {
-                $qty = (int)($_POST['quantity'] ?? 1);
-                Cart::updateItemQuantity((int)$u['user_id'], $cartItemId, $qty);
-                $notice = 'Tétel frissítve.';
-            } elseif ($action === 'remove') {
-                Cart::removeItem((int)$u['user_id'], $cartItemId);
-                $notice = 'Tétel eltávolítva.';
-            } elseif ($action === 'checkout') {
-                // redirect to checkout page
-                header('Location: ' . base_url('checkout.php'));
-                exit;
-            }
-        } catch (Throwable $e) {
-            $errors[] = $e->getMessage();
-        }
-    }
-}
-
-$data = Cart::getActiveCart((int)$u['user_id']);
-$rows = $data['rows'];
-$total = (float)$data['total'];
+$data = Cart::getActiveCart((int)$me['user_id']);
+$items = $data['items'];
+$subtotal = $data['subtotal'];
 
 $title = 'Kosár';
 $active = 'store';
 include __DIR__ . '/partials/header.php';
-
-$sidebarTitle = 'Kosár összegzés';
-ob_start();
 ?>
-<div>
-  <p><strong>Tételek:</strong> <?= (int)Cart::itemCount((int)$u['user_id']) ?></p>
-  <p><strong>Végösszeg:</strong> <?= number_format($total, 2, '.', ' ') ?> Ft</p>
-</div>
-<form method="post" action="">
-  <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-  <input type="hidden" name="action" value="checkout">
-  <button type="submit">Tovább a fizetéshez</button>
-</form>
-<?php
-$sidebarContent = ob_get_clean();
-include __DIR__ . '/partials/sidebar-filters.php';
-?>
-
 <header class="content__header">
   <h1 class="content__title">Kosár</h1>
 </header>
 
-<?php if ($notice): ?><div><strong><?= e($notice) ?></strong></div><?php endif; ?>
-<?php if ($errors): ?>
-  <div>
-    <h3>Hibák:</h3>
-    <ul><?php foreach ($errors as $err): ?><li><?= e($err) ?></li><?php endforeach; ?></ul>
-  </div>
-<?php endif; ?>
-
-<?php if (!$rows): ?>
-  <div class="empty empty--cart">
-    <p>A kosarad üres.</p>
-    <p><a href="<?= e(base_url('store.php')) ?>">Vissza az áruházhoz</a></p>
-  </div>
+<?php if (!$items): ?>
+  <p>A kosár üres.</p>
+  <p><a href="<?= e(base_url('store.php')) ?>">Vissza az áruházba</a></p>
 <?php else: ?>
-  <table border="1" cellpadding="6" cellspacing="0">
+  <table border="1" cellpadding="8" cellspacing="0">
     <thead>
       <tr>
-        <th>Játék</th>
-        <th>Menny.</th>
+        <th>Termék</th>
         <th>Egységár</th>
+        <th>Mennyiség</th>
         <th>Sorösszeg</th>
         <th>Műveletek</th>
       </tr>
     </thead>
     <tbody>
-      <?php foreach ($rows as $r): ?>
+      <?php foreach ($items as $it): ?>
         <tr>
           <td>
-            <strong><?= e($r['title'] ?? '—') ?></strong>
-            <?php if (!empty($r['image_url'])): ?><br><img src="<?= e($r['image_url']) ?>" alt="" style="max-height:60px"><?php endif; ?>
+            <?= e($it['title']) ?><br>
+            <?php if (!empty($it['image_url'])): ?>
+              <img src="<?= e($it['image_url']) ?>" alt="" style="max-height:60px;">
+            <?php endif; ?>
           </td>
+          <td><?= number_format((float)$it['unit_price'], 2, '.', ' ') ?> Ft</td>
           <td>
-            <form method="post" action="" style="display:inline">
+            <form method="post" action="<?= e(base_url('cart_update.php')) ?>" style="display:inline-flex; gap:6px;">
               <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-              <input type="hidden" name="action" value="update">
-              <input type="hidden" name="cart_item_id" value="<?= (int)$r['cart_item_id'] ?>">
-              <input type="number" name="quantity" value="<?= (int)$r['quantity'] ?>" min="1" max="99" style="width:60px">
-              <button type="submit">Mentés</button>
+              <input type="hidden" name="cart_item_id" value="<?= (int)$it['cart_item_id'] ?>">
+              <input type="number" name="quantity" min="1" max="99" value="<?= (int)$it['quantity'] ?>">
+              <button type="submit">Módosít</button>
             </form>
           </td>
-          <td><?= number_format((float)$r['unit_price_at_add'], 2, '.', ' ') ?> Ft</td>
-          <td><?= number_format((float)$r['line_total'], 2, '.', ' ') ?> Ft</td>
+          <td><?= number_format((float)$it['line_total'], 2, '.', ' ') ?> Ft</td>
           <td>
-            <form method="post" action="" style="display:inline">
+            <form method="post" action="<?= e(base_url('cart_remove.php')) ?>" onsubmit="return confirm('Biztosan törlöd?');">
               <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-              <input type="hidden" name="action" value="remove">
-              <input type="hidden" name="cart_item_id" value="<?= (int)$r['cart_item_id'] ?>">
+              <input type="hidden" name="cart_item_id" value="<?= (int)$it['cart_item_id'] ?>">
               <button type="submit">Eltávolítás</button>
             </form>
           </td>
@@ -120,19 +62,15 @@ include __DIR__ . '/partials/sidebar-filters.php';
     </tbody>
     <tfoot>
       <tr>
-        <td colspan="3" align="right"><strong>Összesen:</strong></td>
-        <td><strong><?= number_format($total, 2, '.', ' ') ?> Ft</strong></td>
-        <td></td>
+        <th colspan="3" style="text-align:right;">Részösszeg:</th>
+        <th><?= number_format((float)$subtotal, 2, '.', ' ') ?> Ft</th>
+        <th></th>
       </tr>
     </tfoot>
   </table>
 
-  <p>
-    <form method="post" action="">
-      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-      <input type="hidden" name="action" value="checkout">
-      <button type="submit">Tovább a fizetéshez</button>
-    </form>
+  <p style="margin-top:12px;">
+    <a href="<?= e(base_url('checkout.php')) ?>">Tovább a pénztárhoz</a>
   </p>
 <?php endif; ?>
 
